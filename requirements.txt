@@ -20,4 +20,7 @@ requests>=2.31.0
 lxml>=5.1.0
 selenium>=4.17.2
 webdriver-manager>=4.0.1
-google-api-python-client>=2.131.0 
+google-api-python-client>=2.131.0
+
+# Kaggle API
+kaggle>=1.5.16 

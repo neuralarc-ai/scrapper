@@ -9,6 +9,8 @@ import json
 from urllib.parse import urlparse, parse_qs
 import re
 from kaggle.api.kaggle_api_extended import KaggleApi
+from pathlib import Path
+import platform
 
 # Load environment variables
 load_dotenv()
@@ -119,16 +121,21 @@ def display_selected_datasets() -> None:
             st.rerun()
 
 def get_downloads_folder() -> str:
-    """Get the Downloads folder path for the current operating system."""
-    if os.name == 'nt':  # Windows
-        downloads = os.path.join(os.path.expanduser('~'), 'Downloads')
-    else:  # macOS and Linux
-        downloads = os.path.expanduser('~/Downloads')
-    
-    if not os.path.exists(downloads):
-        st.error(f"Could not find Downloads folder at: {downloads}")
-        return None
-    return downloads
+    """Get the Downloads folder path for the current operating system and user."""
+    home = Path.home()
+    system = platform.system()
+    downloads = home / "Downloads"
+
+    if downloads.exists():
+        return str(downloads)
+    else:
+        # Fallback: create the Downloads folder if it doesn't exist
+        try:
+            downloads.mkdir(parents=True, exist_ok=True)
+            return str(downloads)
+        except Exception as e:
+            st.error(f"Could not create or find Downloads folder at: {downloads}. Error: {e}")
+            return None
 
 def download_dataset(url: str) -> None:
     """Download a dataset from Kaggle using the Kaggle API."""

@@ -29,9 +29,9 @@ def initialize_kaggle_api() -> KaggleApi:
     # Check if running on Streamlit Cloud
     if os.path.exists('/home/adminuser/venv'):
         # Use Streamlit secrets for cloud deployment
-        if 'kaggle_username' in st.secrets and 'kaggle_key' in st.secrets:
-            os.environ['KAGGLE_USERNAME'] = st.secrets['kaggle_username']
-            os.environ['KAGGLE_KEY'] = st.secrets['kaggle_key']
+        if 'kaggle' in st.secrets and 'username' in st.secrets.kaggle and 'key' in st.secrets.kaggle:
+            os.environ['KAGGLE_USERNAME'] = st.secrets.kaggle.username
+            os.environ['KAGGLE_KEY'] = st.secrets.kaggle.key
         else:
             st.error("Kaggle credentials not found in Streamlit secrets. Please add them in the Streamlit Cloud dashboard.")
             st.stop()

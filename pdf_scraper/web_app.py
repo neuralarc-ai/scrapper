@@ -24,9 +24,23 @@ if 'download_status' not in st.session_state:
 
 def initialize_kaggle_api() -> KaggleApi:
     """Initialize the Kaggle API client."""
-    api = KaggleApi()
-    api.authenticate()
-    return api
+    try:
+        api = KaggleApi()
+        api.authenticate()
+        return api
+    except IOError as e:
+        st.error("""
+        ⚠️ Kaggle API credentials not found! Please follow these steps:
+        1. Go to https://www.kaggle.com/account
+        2. Scroll to 'API' section
+        3. Click 'Create New API Token'
+        4. Move the downloaded kaggle.json to ~/.kaggle/kaggle.json
+        5. Run: chmod 600 ~/.kaggle/kaggle.json
+        """)
+        st.stop()
+    except Exception as e:
+        st.error(f"Error initializing Kaggle API: {str(e)}")
+        st.stop()
 
 def search_kaggle_datasets(query: str) -> List[Dict[str, Any]]:
     """Search for datasets on Kaggle using the Kaggle API."""

@@ -8,7 +8,6 @@ from typing import Dict, Any, List
 import json
 from urllib.parse import urlparse, parse_qs
 import re
-import kaggle
 from kaggle.api.kaggle_api_extended import KaggleApi
 
 # Load environment variables
@@ -21,28 +20,37 @@ if 'selected_results' not in st.session_state:
     st.session_state.selected_results = []
 if 'download_status' not in st.session_state:
     st.session_state.download_status = {}
+if 'kaggle_api' not in st.session_state:
+    st.session_state.kaggle_api = None
 
 def initialize_kaggle_api() -> KaggleApi:
     """Initialize the Kaggle API client."""
-    api = KaggleApi()
-    
-    # Check if running on Streamlit Cloud
-    if os.path.exists('/home/adminuser/venv'):
-        # Use Streamlit secrets for cloud deployment
-        if 'kaggle' in st.secrets and 'username' in st.secrets.kaggle and 'key' in st.secrets.kaggle:
-            os.environ['KAGGLE_USERNAME'] = st.secrets.kaggle.username
-            os.environ['KAGGLE_KEY'] = st.secrets.kaggle.key
+    if st.session_state.kaggle_api is None:
+        api = KaggleApi()
+        
+        # Check if running on Streamlit Cloud
+        if os.path.exists('/home/adminuser/venv'):
+            # Use Streamlit secrets for cloud deployment
+            if 'kaggle' in st.secrets and 'username' in st.secrets.kaggle and 'key' in st.secrets.kaggle:
+                os.environ['KAGGLE_USERNAME'] = st.secrets.kaggle.username
+                os.environ['KAGGLE_KEY'] = st.secrets.kaggle.key
+            else:
+                st.error("Kaggle credentials not found in Streamlit secrets. Please add them in the Streamlit Cloud dashboard.")
+                st.stop()
         else:
-            st.error("Kaggle credentials not found in Streamlit secrets. Please add them in the Streamlit Cloud dashboard.")
-            st.stop()
-    else:
-        # Local environment - use kaggle.json
-        if not os.path.exists(os.path.expanduser('~/.kaggle/kaggle.json')):
-            st.error("Kaggle credentials not found. Please ensure kaggle.json is in ~/.kaggle/")
+            # Local environment - use kaggle.json
+            if not os.path.exists(os.path.expanduser('~/.kaggle/kaggle.json')):
+                st.error("Kaggle credentials not found. Please ensure kaggle.json is in ~/.kaggle/")
+                st.stop()
+        
+        try:
+            api.authenticate()
+            st.session_state.kaggle_api = api
+        except Exception as e:
+            st.error(f"Failed to authenticate with Kaggle: {str(e)}")
             st.stop()
     
-    api.authenticate()
-    return api
+    return st.session_state.kaggle_api
 
 def search_kaggle_datasets(query: str) -> List[Dict[str, Any]]:
     """Search for datasets on Kaggle using the Kaggle API."""

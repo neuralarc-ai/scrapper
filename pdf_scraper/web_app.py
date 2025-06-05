@@ -104,7 +104,7 @@ def display_selected_datasets() -> None:
     with col2:
         if st.button("Clear Selection"):
             st.session_state.selected_results = []
-            st.experimental_rerun()
+            st.rerun()
 
 def download_dataset(url: str) -> None:
     """Download a dataset from Kaggle using the Kaggle API."""

@@ -13,6 +13,10 @@ from kaggle.api.kaggle_api_extended import KaggleApi
 # Load environment variables
 load_dotenv()
 
+# Set Kaggle credentials from environment variables
+os.environ['KAGGLE_USERNAME'] = os.getenv('KAGGLE_USERNAME', 'sahilempire')
+os.environ['KAGGLE_KEY'] = os.getenv('KAGGLE_KEY', '0875b95075f73482ec91b60d5ba8736a')
+
 # Initialize session state
 if 'search_results' not in st.session_state:
     st.session_state.search_results = []
@@ -26,21 +30,8 @@ if 'kaggle_api' not in st.session_state:
 def initialize_kaggle_api() -> KaggleApi:
     """Initialize the Kaggle API client."""
     if st.session_state.kaggle_api is None:
-        api = KaggleApi()
-        
-        # Get credentials from environment variables
-        kaggle_username = os.getenv('KAGGLE_USERNAME')
-        kaggle_key = os.getenv('KAGGLE_KEY')
-        
-        if not kaggle_username or not kaggle_key:
-            st.error("Kaggle credentials not found in environment variables. Please set KAGGLE_USERNAME and KAGGLE_KEY in .env file")
-            st.stop()
-        
-        # Set environment variables for Kaggle API
-        os.environ['KAGGLE_USERNAME'] = kaggle_username
-        os.environ['KAGGLE_KEY'] = kaggle_key
-        
         try:
+            api = KaggleApi()
             api.authenticate()
             st.session_state.kaggle_api = api
         except Exception as e:
@@ -134,19 +125,37 @@ def download_dataset(url: str) -> None:
         # Extract dataset reference from URL (username/dataset-name)
         dataset_ref = '/'.join(url.split('/')[-2:])
         
-        # Create datasets directory if it doesn't exist
-        datasets_dir = os.path.join(os.getcwd(), 'datasets')
-        os.makedirs(datasets_dir, exist_ok=True)
+        # Get the Downloads folder path
+        downloads_dir = os.path.expanduser("~/Downloads")
+        if not os.path.exists(downloads_dir):
+            downloads_dir = os.path.join(os.path.expanduser("~"), "Downloads")
+            os.makedirs(downloads_dir, exist_ok=True)
         
-        # Download the dataset to the datasets directory
-        api.dataset_download_files(dataset_ref, path=datasets_dir, unzip=True)
+        # Create a subdirectory for this specific dataset in Downloads
+        dataset_name = dataset_ref.split('/')[-1]
+        dataset_dir = os.path.join(downloads_dir, dataset_name)
+        os.makedirs(dataset_dir, exist_ok=True)
+        
+        # Download the dataset to the Downloads directory
+        api.dataset_download_files(dataset_ref, path=dataset_dir, unzip=True)
+        
+        # Get the list of downloaded files
+        downloaded_files = os.listdir(dataset_dir)
         
         st.session_state.download_status[url] = {
             'status': 'success',
-            'filename': dataset_ref,
-            'path': os.path.join(datasets_dir, dataset_ref.split('/')[-1])
+            'filename': dataset_name,
+            'path': dataset_dir,
+            'files': downloaded_files
         }
-        st.success(f"✅ Successfully downloaded dataset: {dataset_ref}\n📁 Location: {os.path.join(datasets_dir, dataset_ref.split('/')[-1])}")
+        
+        # Show success message with file locations
+        st.success(f"✅ Successfully downloaded dataset: {dataset_name}")
+        st.info(f"📁 Location: {dataset_dir}")
+        st.info("📄 Files downloaded:")
+        for file in downloaded_files:
+            st.write(f"- {file}")
+            
     except Exception as e:
         st.session_state.download_status[url] = {
             'status': 'error',
@@ -162,6 +171,11 @@ def display_download_status() -> None:
     for url, status in st.session_state.download_status.items():
         if status['status'] == 'success':
             st.success(f"✅ Downloaded: {status['filename']}")
+            st.info(f"📁 Location: {status['path']}")
+            if 'files' in status:
+                st.write("📄 Files:")
+                for file in status['files']:
+                    st.write(f"- {file}")
         else:
             st.error(f"❌ Failed to download {url}: {status['error']}")
 

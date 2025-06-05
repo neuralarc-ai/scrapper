@@ -28,20 +28,17 @@ def initialize_kaggle_api() -> KaggleApi:
     if st.session_state.kaggle_api is None:
         api = KaggleApi()
         
-        # Check if running on Streamlit Cloud
-        if os.path.exists('/home/adminuser/venv'):
-            # Use Streamlit secrets for cloud deployment
-            if 'kaggle' in st.secrets and 'username' in st.secrets.kaggle and 'key' in st.secrets.kaggle:
-                os.environ['KAGGLE_USERNAME'] = st.secrets.kaggle.username
-                os.environ['KAGGLE_KEY'] = st.secrets.kaggle.key
-            else:
-                st.error("Kaggle credentials not found in Streamlit secrets. Please add them in the Streamlit Cloud dashboard.")
-                st.stop()
-        else:
-            # Local environment - use kaggle.json
-            if not os.path.exists(os.path.expanduser('~/.kaggle/kaggle.json')):
-                st.error("Kaggle credentials not found. Please ensure kaggle.json is in ~/.kaggle/")
-                st.stop()
+        # Get credentials from environment variables
+        kaggle_username = os.getenv('KAGGLE_USERNAME')
+        kaggle_key = os.getenv('KAGGLE_KEY')
+        
+        if not kaggle_username or not kaggle_key:
+            st.error("Kaggle credentials not found in environment variables. Please set KAGGLE_USERNAME and KAGGLE_KEY in .env file")
+            st.stop()
+        
+        # Set environment variables for Kaggle API
+        os.environ['KAGGLE_USERNAME'] = kaggle_username
+        os.environ['KAGGLE_KEY'] = kaggle_key
         
         try:
             api.authenticate()

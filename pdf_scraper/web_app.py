@@ -24,23 +24,9 @@ if 'download_status' not in st.session_state:
 
 def initialize_kaggle_api() -> KaggleApi:
     """Initialize the Kaggle API client."""
-    try:
-        api = KaggleApi()
-        api.authenticate()
-        return api
-    except IOError as e:
-        st.error("""
-        ⚠️ Kaggle API credentials not found! Please follow these steps:
-        1. Go to https://www.kaggle.com/account
-        2. Scroll to 'API' section
-        3. Click 'Create New API Token'
-        4. Move the downloaded kaggle.json to ~/.kaggle/kaggle.json
-        5. Run: chmod 600 ~/.kaggle/kaggle.json
-        """)
-        st.stop()
-    except Exception as e:
-        st.error(f"Error initializing Kaggle API: {str(e)}")
-        st.stop()
+    api = KaggleApi()
+    api.authenticate()
+    return api
 
 def search_kaggle_datasets(query: str) -> List[Dict[str, Any]]:
     """Search for datasets on Kaggle using the Kaggle API."""
@@ -126,14 +112,20 @@ def download_dataset(url: str) -> None:
         api = initialize_kaggle_api()
         # Extract dataset reference from URL (username/dataset-name)
         dataset_ref = '/'.join(url.split('/')[-2:])
-        # Download the dataset
-        api.dataset_download_files(dataset_ref, path='.', unzip=True)
+        
+        # Create datasets directory if it doesn't exist
+        datasets_dir = os.path.join(os.getcwd(), 'datasets')
+        os.makedirs(datasets_dir, exist_ok=True)
+        
+        # Download the dataset to the datasets directory
+        api.dataset_download_files(dataset_ref, path=datasets_dir, unzip=True)
+        
         st.session_state.download_status[url] = {
             'status': 'success',
             'filename': dataset_ref,
-            'size': 0  # Size not provided by Kaggle API
+            'path': os.path.join(datasets_dir, dataset_ref.split('/')[-1])
         }
-        st.success(f"✅ Successfully downloaded dataset: {dataset_ref}")
+        st.success(f"✅ Successfully downloaded dataset: {dataset_ref}\n📁 Location: {os.path.join(datasets_dir, dataset_ref.split('/')[-1])}")
     except Exception as e:
         st.session_state.download_status[url] = {
             'status': 'error',

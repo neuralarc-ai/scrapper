@@ -134,13 +134,29 @@ def download_dataset(url: str) -> None:
         # Create a subdirectory for this specific dataset in Downloads
         dataset_name = dataset_ref.split('/')[-1]
         dataset_dir = os.path.join(downloads_dir, dataset_name)
+        
+        # Remove existing directory if it exists
+        if os.path.exists(dataset_dir):
+            import shutil
+            shutil.rmtree(dataset_dir)
+        
+        # Create fresh directory
         os.makedirs(dataset_dir, exist_ok=True)
         
-        # Download the dataset to the Downloads directory
-        api.dataset_download_files(dataset_ref, path=dataset_dir, unzip=True)
+        # Download the dataset directly to Downloads
+        with st.spinner(f"Downloading {dataset_name} to Downloads folder..."):
+            api.dataset_download_files(
+                dataset_ref,
+                path=dataset_dir,
+                unzip=True,
+                force=True  # Force download even if files exist
+            )
         
         # Get the list of downloaded files
         downloaded_files = os.listdir(dataset_dir)
+        
+        if not downloaded_files:
+            raise Exception("No files were downloaded")
         
         st.session_state.download_status[url] = {
             'status': 'success',
@@ -154,13 +170,19 @@ def download_dataset(url: str) -> None:
         st.info(f"📁 Location: {dataset_dir}")
         st.info("📄 Files downloaded:")
         for file in downloaded_files:
-            st.write(f"- {file}")
+            file_path = os.path.join(dataset_dir, file)
+            file_size = os.path.getsize(file_path) / (1024 * 1024)  # Size in MB
+            st.write(f"- {file} ({file_size:.1f} MB)")
             
     except Exception as e:
         st.session_state.download_status[url] = {
             'status': 'error',
             'error': f"Download failed: {str(e)}"
         }
+        # Clean up if download failed
+        if 'dataset_dir' in locals() and os.path.exists(dataset_dir):
+            import shutil
+            shutil.rmtree(dataset_dir)
 
 def display_download_status() -> None:
     """Display download status."""

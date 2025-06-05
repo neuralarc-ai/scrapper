@@ -25,6 +25,22 @@ if 'download_status' not in st.session_state:
 def initialize_kaggle_api() -> KaggleApi:
     """Initialize the Kaggle API client."""
     api = KaggleApi()
+    
+    # Check if running on Streamlit Cloud
+    if os.path.exists('/home/adminuser/venv'):
+        # Use Streamlit secrets for cloud deployment
+        if 'kaggle_username' in st.secrets and 'kaggle_key' in st.secrets:
+            os.environ['KAGGLE_USERNAME'] = st.secrets['kaggle_username']
+            os.environ['KAGGLE_KEY'] = st.secrets['kaggle_key']
+        else:
+            st.error("Kaggle credentials not found in Streamlit secrets. Please add them in the Streamlit Cloud dashboard.")
+            st.stop()
+    else:
+        # Local environment - use kaggle.json
+        if not os.path.exists(os.path.expanduser('~/.kaggle/kaggle.json')):
+            st.error("Kaggle credentials not found. Please ensure kaggle.json is in ~/.kaggle/")
+            st.stop()
+    
     api.authenticate()
     return api
 

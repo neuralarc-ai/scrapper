@@ -118,6 +118,18 @@ def display_selected_datasets() -> None:
             st.session_state.selected_results = []
             st.rerun()
 
+def get_downloads_folder() -> str:
+    """Get the Downloads folder path for the current operating system."""
+    if os.name == 'nt':  # Windows
+        downloads = os.path.join(os.path.expanduser('~'), 'Downloads')
+    else:  # macOS and Linux
+        downloads = os.path.expanduser('~/Downloads')
+    
+    if not os.path.exists(downloads):
+        st.error(f"Could not find Downloads folder at: {downloads}")
+        return None
+    return downloads
+
 def download_dataset(url: str) -> None:
     """Download a dataset from Kaggle using the Kaggle API."""
     try:
@@ -125,11 +137,10 @@ def download_dataset(url: str) -> None:
         # Extract dataset reference from URL (username/dataset-name)
         dataset_ref = '/'.join(url.split('/')[-2:])
         
-        # Get the Downloads folder path
-        downloads_dir = os.path.expanduser("~/Downloads")
-        if not os.path.exists(downloads_dir):
-            downloads_dir = os.path.join(os.path.expanduser("~"), "Downloads")
-            os.makedirs(downloads_dir, exist_ok=True)
+        # Get Downloads folder path
+        downloads_dir = get_downloads_folder()
+        if not downloads_dir:
+            return
         
         # Create a subdirectory for this specific dataset in Downloads
         dataset_name = dataset_ref.split('/')[-1]
